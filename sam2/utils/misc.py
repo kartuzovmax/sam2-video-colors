@@ -58,9 +58,32 @@ def get_connected_components(mask):
     - counts: A tensor of shape (N, 1, H, W) containing the area of the connected
               components for foreground pixels and 0 for background pixels.
     """
-    from sam2 import _C
+    try:
+        from sam2 import _C
+        return _C.get_connected_componnets(mask.to(torch.uint8).contiguous())
+    except ImportError:
+        # Pure Python fallback using scipy
+        from scipy import ndimage
+        import numpy as np
 
-    return _C.get_connected_componnets(mask.to(torch.uint8).contiguous())
+        mask_np = mask.cpu().numpy().astype(np.uint8)
+        N, C, H, W = mask_np.shape
+        labels_out = np.zeros_like(mask_np, dtype=np.int32)
+        counts_out = np.zeros_like(mask_np, dtype=np.int32)
+
+        for n in range(N):
+            for c in range(C):
+                labeled, num_features = ndimage.label(mask_np[n, c])
+                labels_out[n, c] = labeled
+                for i in range(1, num_features + 1):
+                    area = (labeled == i).sum()
+                    counts_out[n, c][labeled == i] = area
+
+        device = mask.device
+        return (
+            torch.from_numpy(labels_out).to(device),
+            torch.from_numpy(counts_out).to(device),
+        )
 
 
 def mask_to_box(masks: torch.Tensor):
