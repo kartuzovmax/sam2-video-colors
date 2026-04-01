@@ -1,0 +1,10 @@
+sam2/
+notebooks/
+demo/
+tools/
+training/
+website/
+assets/
+.git/
+*.md
+LICENSE
