@@ -9,3 +9,4 @@ matplotlib>=3.9
 opencv-python>=4.7.0
 supervision==0.18.0
 imageio[ffmpeg]
+SAM-2 @ git+https://github.com/kartuzovmax/sam2-video-colors.git@video
