@@ -204,6 +204,12 @@ class Predictor(BasePredictor):
             ge=0,
             le=100,
         ),
+        # Background color for greenscreen mode
+        background_color: str = Input(
+            description="Background color for greenscreen mode",
+            default="green",
+            choices=["green", "red", "blue", "yellow", "cyan", "magenta", "white", "black"],
+        ),
         # General output option
         output_frame_interval: int = Input(
             default=1,
@@ -274,7 +280,7 @@ class Predictor(BasePredictor):
                         continue
 
                     annotated_frame = self.process_frame(
-                        frame, mask_logits, tracker_ids, mask_type, annotation_type
+                        frame, mask_logits, tracker_ids, mask_type, annotation_type, background_color
                     )
                     frame_path = frame_directory_path / f"frame_{frame_idx:05d}.png"
                     Image.fromarray(annotated_frame).save(frame_path)
@@ -324,7 +330,7 @@ class Predictor(BasePredictor):
                         continue
 
                     annotated_frame = self.process_frame(
-                        frame, mask_logits, tracker_ids, mask_type, annotation_type
+                        frame, mask_logits, tracker_ids, mask_type, annotation_type, background_color
                     )
                     output_path = output_dir / f"frame_{frame_idx:05d}.{output_format}"
                     self.save_image(
@@ -336,8 +342,19 @@ class Predictor(BasePredictor):
                     yield output_path
 
     def process_frame(
-        self, frame, mask_logits, tracker_ids, mask_type, annotation_type
+        self, frame, mask_logits, tracker_ids, mask_type, annotation_type, background_color="green"
     ):
+        colors = {
+            "green": [0, 255, 0],
+            "red": [255, 0, 0],
+            "blue": [0, 0, 255],
+            "yellow": [255, 255, 0],
+            "cyan": [0, 255, 255],
+            "magenta": [255, 0, 255],
+            "white": [255, 255, 255],
+            "black": [0, 0, 0],
+        }
+
         masks = (mask_logits > 0.0).cpu().numpy().astype(bool)
         if len(masks.shape) == 4:
             masks = np.squeeze(masks, axis=1)
@@ -361,8 +378,9 @@ class Predictor(BasePredictor):
         elif mask_type == "binary":
             annotated_frame = (masks.any(axis=0) * 255).astype(np.uint8)
         elif mask_type == "greenscreen":
-            green_background = np.full(frame.shape, [0, 255, 0], dtype=np.uint8)
+            color_rgb = colors.get(background_color.lower(), [0, 255, 0])
+            bg = np.full(frame.shape, color_rgb, dtype=np.uint8)
             mask = masks.any(axis=0)
-            annotated_frame = np.where(mask[..., None], frame, green_background)
+            annotated_frame = np.where(mask[..., None], frame, bg)
 
         return annotated_frame
