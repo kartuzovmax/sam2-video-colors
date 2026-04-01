@@ -249,12 +249,20 @@ class Predictor(BasePredictor):
                 video_path=str(frame_directory_path)
             )
 
-            # Process clicks and generate prompts
+            # Group clicks by (obj_id, frame) and pass all points together
+            # This is critical: passing points one-at-a-time gives different (worse) results
+            from collections import defaultdict
+            grouped = defaultdict(lambda: {"points": [], "labels": []})
             for click, click_type, frame, obj_id in zip(
                 click_list, click_labels_list, click_frames_list, object_ids_int_list
             ):
-                points = np.array([click], dtype=np.float32)
-                labels = np.array([click_type], dtype=np.int32)
+                key = (obj_id, frame)
+                grouped[key]["points"].append(click)
+                grouped[key]["labels"].append(click_type)
+
+            for (obj_id, frame), data in grouped.items():
+                points = np.array(data["points"], dtype=np.float32)
+                labels = np.array(data["labels"], dtype=np.int32)
                 _, _, _ = self.predictor.add_new_points(
                     inference_state=inference_state,
                     frame_idx=frame,
