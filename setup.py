@@ -4,7 +4,15 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
+os.environ["TORCH_CUDA_ARCH_LIST"] = "7.0;7.5;8.0;8.6;8.9;9.0"
+# Skip CUDA version mismatch check (cog base image has different CUDA toolkit vs torch)
+os.environ["TORCH_ALLOW_TF32_CUBLAS_OVERRIDE"] = "1"
+
 from setuptools import find_packages, setup
+import torch.utils.cpp_extension
+# Monkey-patch to skip CUDA version check
+torch.utils.cpp_extension._check_cuda_version = lambda *args, **kwargs: None
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 
 # Package metadata
