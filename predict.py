@@ -53,7 +53,7 @@ class Predictor(BasePredictor):
             from sam2.build_sam import build_sam2_video_predictor
         except ImportError:
             print("sam2 not found. Installing...")
-            os.system("pip install --no-build-isolation -e .")
+            os.system("pip install --no-build-isolation --break-system-packages -e .")
             from sam2.build_sam import build_sam2_video_predictor
 
         if not os.path.exists(MODEL_CACHE):
