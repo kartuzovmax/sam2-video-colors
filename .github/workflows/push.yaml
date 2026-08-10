@@ -42,15 +42,14 @@ jobs:
           sudo curl -o /usr/local/bin/cog -L https://github.com/replicate/cog/releases/download/v0.21.0/cog_`uname -s`_`uname -m`
           sudo chmod +x /usr/local/bin/cog
 
-      - name: Log in to Replicate
-        env:
-          COG_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
-        run: echo "$COG_TOKEN" | cog login --token-stdin
-
       # If you trigger the workflow manually, you can specify the model name.
       # If you leave it blank (or if the workflow is triggered by a push), the 
       # model name will be derived from the `image` value in cog.yaml.
+      # No `cog login`: cog reads COG_TOKEN directly (login rejects API tokens).
+      # Same auth pattern as the working cog-sam3-video workflow.
       - name: Push to Replicate
+        env:
+          COG_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
         run: |
           if [ -n "${{ inputs.model_name }}" ]; then
             cog push r8.im/${{ inputs.model_name }}
