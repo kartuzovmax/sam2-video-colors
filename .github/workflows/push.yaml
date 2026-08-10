@@ -33,12 +33,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # setup-cog@v2 installs an old cog that panics on cuda "12.4" in cog.yaml
-      # (nil-version crash in latestCuDNNForCUDA). Install the latest release
-      # directly instead — same approach as the working cog-sam3-video workflow.
+      # setup-cog@v2 installs an old cog that panics on cuda "12.4" in cog.yaml,
+      # and cog >= 0.22 rejects API tokens for `cog login` (wants a browser-fetched
+      # CLI token, unusable in CI). v0.21.0 is the June 2026 release that pushed
+      # cog-sam3-video successfully: handles cuda 12.4 AND accepts the API token.
       - name: Install Cog
         run: |
-          sudo curl -o /usr/local/bin/cog -L https://github.com/replicate/cog/releases/latest/download/cog_`uname -s`_`uname -m`
+          sudo curl -o /usr/local/bin/cog -L https://github.com/replicate/cog/releases/download/v0.21.0/cog_`uname -s`_`uname -m`
           sudo chmod +x /usr/local/bin/cog
 
       - name: Log in to Replicate
