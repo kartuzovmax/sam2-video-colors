@@ -384,11 +384,33 @@ class Predictor(BasePredictor):
                     scene=annotated_frame, detections=detections
                 )
         elif mask_type == "binary":
-            annotated_frame = (masks.any(axis=0) * 255).astype(np.uint8)
+            mask = masks.any(axis=0)
+            if masks.shape[0] > 1:
+                mask = self.close_union_gaps(mask)
+            annotated_frame = (mask * 255).astype(np.uint8)
         elif mask_type == "greenscreen":
             color_rgb = colors.get(background_color.lower(), [0, 255, 0])
             bg = np.full(frame.shape, color_rgb, dtype=np.uint8)
             mask = masks.any(axis=0)
+            if masks.shape[0] > 1:
+                mask = self.close_union_gaps(mask)
             annotated_frame = np.where(mask[..., None], frame, bg)
 
         return annotated_frame
+
+    def close_union_gaps(self, mask):
+        """Fill the thin uncovered band SAM2 leaves where two tracked objects touch
+        or overlap (e.g. a person and the microphone in front of them). Each object's
+        mask is thresholded tightly, so the union renders a 2-10px background-colored
+        divider line/ring at the contact. Morphological closing bridges only gaps
+        narrower than the kernel, leaving outer silhouettes intact. Only called for
+        multi-object jobs, so single-subject output stays bit-identical."""
+        import cv2
+
+        h, w = mask.shape
+        k = max(5, int(round(min(h, w) * 0.012)))
+        if k % 2 == 0:
+            k += 1
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))
+        closed = cv2.morphologyEx(mask.astype(np.uint8), cv2.MORPH_CLOSE, kernel)
+        return closed.astype(bool)
