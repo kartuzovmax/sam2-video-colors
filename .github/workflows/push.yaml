@@ -33,14 +33,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # This action installs Docker buildx and Cog (and optionally CUDA)
-      - name: Setup Cog
-        uses: replicate/setup-cog@v2
-        with:
-          # If you set REPLICATE_API_TOKEN in your GitHub repository secrets,
-          # the action will authenticate with Replicate automatically so you
-          # can push your model
-          token: ${{ secrets.REPLICATE_API_TOKEN }}
+      # setup-cog@v2 installs an old cog that panics on cuda "12.4" in cog.yaml
+      # (nil-version crash in latestCuDNNForCUDA). Install the latest release
+      # directly instead — same approach as the working cog-sam3-video workflow.
+      - name: Install Cog
+        run: |
+          sudo curl -o /usr/local/bin/cog -L https://github.com/replicate/cog/releases/latest/download/cog_`uname -s`_`uname -m`
+          sudo chmod +x /usr/local/bin/cog
+
+      - name: Log in to Replicate
+        env:
+          COG_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+        run: echo "$COG_TOKEN" | cog login --token-stdin
 
       # If you trigger the workflow manually, you can specify the model name.
       # If you leave it blank (or if the workflow is triggered by a push), the 
